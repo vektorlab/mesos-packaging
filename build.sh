@@ -31,6 +31,3 @@ case "$TARGET" in
     build_musl
     ;;
 esac 
-
-build_musl
-
