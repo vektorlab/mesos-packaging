@@ -1,3 +1,0 @@
-[submodule "mesos-src"]
-	path = mesos-src
-	url = https://github.com/apache/mesos.git

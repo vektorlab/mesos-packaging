@@ -1,33 +1,64 @@
 #!/bin/bash
 set -e
 
-ARG=$1
-TARGET="${ARG:=musl}"
-DOCKER="/usr/bin/docker"
-BUILD_IMAGE="quay.io/vektorcloud/build:latest"
+TARGET=$1
+MESOS_SOURCE_REPO="https://github.com/apache/mesos.git"
+SOURCE_PATH="/src"
+BUILD_PATH="$SOURCE_PATH/build"
+MESOS_VERSION="${MESOS_VERSION:=1.1.x}"
+MESOS_TEMP_PATH="/tmp/mesos"
+MESOS_TEMP_PATH_GO="/tmp/mesos-proto-go"
 
-git submodule sync
-git submodule update --init
+function init_source {
+  if [ ! -f "$SOURCE_PATH/bootstrap" ]; then
+    git clone $MESOS_SOURCE_REPO src
+    git checkout $MESOS_VERSION
+  fi
+  if [ ! -d "$BUILD_PATH" ]; then
+    mkdir "$BUILD_PATH"
+  fi
+  cd $SOURCE_PATH
+  MESOS_VERSION="$(git rev-parse --abbrev-ref HEAD)"
+  cd ..
+}
 
-cd mesos-src
-MESOS_VERSION=$(git rev-parse --abbrev-ref HEAD)
-cd ..
-
-function build_musl {
-  PACKAGE_NAME="mesos-musl-$MESOS_VERSION"
-  DOCKER="docker run --rm -ti -w /src -v $PWD/mesos-src:/src -v $PWD/target:/target $BUILD_IMAGE"
-  $DOCKER ./bootstrap
-  $DOCKER ./configure --prefix=/target/musl
-  $DOCKER make -j $(cat /proc/cpuinfo |grep processor |wc -l) V=0
-  $DOCKER make install
-  $DOCKER make clean
-  tar -czvf "$PACKAGE_NAME.tar.gz" -C target/musl/ .
-  md5sum "$PACKAGE_NAME.tar.gz" > "$PACKAGE_NAME.tar.gz.md5"
+function build_mesos {
+  CONFIG_OPTIONS=$1
+  cd $SOURCE_PATH
+  ./bootstrap
+  cd $BUILD_PATH
+  echo "configure $CONFIG_OPTIONS"
+  $SOURCE_PATH/configure "--prefix=$MESOS_TEMP_PATH" $CONFIG_OPTIONS
+  make -j "$(cat /proc/cpuinfo |grep processor |wc -l)"
+  # make check
+  make install
+  make distclean
 }
 
 case "$TARGET" in 
-  'musl')
-    echo "Building musl.."
-    build_musl
+  'tiny')
+    echo "Building $TARGET"
+    init_source
+    build_mesos "--disable-python --disable-java --enable-optimize"
+    cd $SOURCE_PATH
+    tar -czvf "mesos-$MESOS_VERSION-tiny.tar.gz" -C "$MESOS_TEMP_PATH" .
+    md5sum "mesos-$MESOS_VERSION-tiny.tar.gz" > "mesos-$MESOS_VERSION-tiny.tar.gz.md5"
     ;;
+  'protoc-go')
+    echo "Building protocol buffers for Go"
+    init_source
+    cd $SOURCE_PATH/include
+    if [ ! -d "$MESOS_TEMP_PATH_GO" ]; then
+      mkdir "$MESOS_TEMP_PATH_GO"
+    fi
+    for i in $(find . |grep '\.proto'); do 
+      protoc --go_out="$MESOS_TEMP_PATH_GO" $i
+    done
+    cd ..
+    tar -czvf "mesos-$MESOS_VERSION-proto-go.tar.gz" -C "$MESOS_TEMP_PATH_GO/mesos" .
+    md5sum "mesos-$MESOS_VERSION-proto-go.tar.gz" > "mesos-$MESOS_VERSION-proto-go.tar.gz.md5"
+    ;;
+  *)
+    echo "Select a target [tiny, protoc-go]"
+    exit 1
 esac 
