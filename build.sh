@@ -28,10 +28,10 @@ function build_mesos {
   ./bootstrap
   cd $BUILD_PATH
   echo "configure $CONFIG_OPTIONS"
-  $SOURCE_PATH/configure "--prefix=$MESOS_TEMP_PATH" $CONFIG_OPTIONS
+  $SOURCE_PATH/configure --prefix=/usr $CONFIG_OPTIONS
   make -j "$(cat /proc/cpuinfo |grep processor |wc -l)"
   # make check
-  make install
+  make install DESTDIR="$MESOS_TEMP_PATH"
   make distclean
 }
 
@@ -39,7 +39,7 @@ case "$TARGET" in
   'tiny')
     echo "Building $TARGET"
     init_source
-    build_mesos "--disable-python --disable-java --enable-optimize"
+    build_mesos "--disable-python --enable-optimize"
     cd $SOURCE_PATH
     tar -czvf "mesos-$MESOS_VERSION-tiny.tar.gz" -C "$MESOS_TEMP_PATH" .
     md5sum "mesos-$MESOS_VERSION-tiny.tar.gz" > "mesos-$MESOS_VERSION-tiny.tar.gz.md5"
