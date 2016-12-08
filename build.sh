@@ -36,13 +36,17 @@ function build_mesos {
 }
 
 case "$TARGET" in 
-  'tiny')
-    echo "Building $TARGET"
+  'compile')
+    if [ ! $# -gt 1 ]; then
+      echo "Specify a postfix, e.g. musl, glibc, etc."
+      exit 1
+    fi
+    POSTFIX="$2"
     init_source
     build_mesos "--disable-python --enable-optimize"
     cd $SOURCE_PATH
-    tar -czvf "mesos-$MESOS_VERSION-tiny.tar.gz" -C "$MESOS_TEMP_PATH" .
-    md5sum "mesos-$MESOS_VERSION-tiny.tar.gz" > "mesos-$MESOS_VERSION-tiny.tar.gz.md5"
+    tar -czvf "mesos-$MESOS_VERSION-$POSTFIX.tar.gz" -C "$MESOS_TEMP_PATH" .
+    md5sum "mesos-$MESOS_VERSION-$POSTFIX.tar.gz" > "mesos-$MESOS_VERSION-$POSTFIX.tar.gz.md5"
     ;;
   'protoc-go')
     echo "Building protocol buffers for Go"
@@ -59,6 +63,6 @@ case "$TARGET" in
     md5sum "mesos-$MESOS_VERSION-proto-go.tar.gz" > "mesos-$MESOS_VERSION-proto-go.tar.gz.md5"
     ;;
   *)
-    echo "Select a target [tiny, protoc-go]"
+    echo "Select a target [compile, protoc-go]"
     exit 1
 esac 
