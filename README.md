@@ -5,9 +5,6 @@ Scripts to build [Apache Mesos](http://mesos.apache.com) against Alpine compatib
 
 #### Usage
 
-  * tiny - Compiles a minimal version of Mesos without java or python bindings
-  * protoc-go - Generates Mesos Go [Protocol Buffers](https://github.com/golang/protobuf)
-
     docker build -t mesos-packaging .
     # Clone the entire source and checkout specific verison
     docker run --rm -ti -e MESOS_VERSION=1.1.x -v /tmp/build:/src mesos-packaging tiny
