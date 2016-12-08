@@ -7,7 +7,7 @@ SOURCE_PATH="/src"
 BUILD_PATH="$SOURCE_PATH/build"
 MESOS_VERSION="${MESOS_VERSION:=1.1.x}"
 MESOS_TEMP_PATH="/tmp/mesos"
-MESOS_TEMP_PATH_GO="/tmp/mesos-proto-go"
+MESOS_TEMP_PATH_PROTO="/tmp/protobuf"
 
 function init_source {
   if [ ! -f "$SOURCE_PATH/bootstrap" ]; then
@@ -48,21 +48,26 @@ case "$TARGET" in
     tar -czvf "mesos-$MESOS_VERSION-$POSTFIX.tar.gz" -C "$MESOS_TEMP_PATH" .
     md5sum "mesos-$MESOS_VERSION-$POSTFIX.tar.gz" > "mesos-$MESOS_VERSION-$POSTFIX.tar.gz.md5"
     ;;
-  'protoc-go')
-    echo "Building protocol buffers for Go"
+  'protoc')
+    echo "Building protocol buffers"
     init_source
     cd $SOURCE_PATH/include
-    if [ ! -d "$MESOS_TEMP_PATH_GO" ]; then
-      mkdir "$MESOS_TEMP_PATH_GO"
+    if [ ! -d "$MESOS_TEMP_PATH_PROTO" ]; then
+      mkdir -v "$MESOS_TEMP_PATH_PROTO"
+      mkdir -v "$MESOS_TEMP_PATH_PROTO/cpp"
+      mkdir -v "$MESOS_TEMP_PATH_PROTO/go"
+      mkdir -v "$MESOS_TEMP_PATH_PROTO/java"
+      mkdir -v "$MESOS_TEMP_PATH_PROTO/python"
     fi
-    for i in $(find . |grep '\.proto'); do 
-      protoc --go_out="$MESOS_TEMP_PATH_GO" $i
+    for i in $(find . |grep '\.proto$'); do 
+      protoc --go_out="$MESOS_TEMP_PATH_PROTO/go" --java_out="$MESOS_TEMP_PATH_PROTO/java" --cpp_out="$MESOS_TEMP_PATH_PROTO/cpp" --python_out="$MESOS_TEMP_PATH_PROTO/python" $i
     done
+    ls -la /tmp/protobuf
     cd ..
-    tar -czvf "mesos-$MESOS_VERSION-proto-go.tar.gz" -C "$MESOS_TEMP_PATH_GO/mesos" .
-    md5sum "mesos-$MESOS_VERSION-proto-go.tar.gz" > "mesos-$MESOS_VERSION-proto-go.tar.gz.md5"
+    tar -czvf "mesos-$MESOS_VERSION-protobuf.tar.gz" -C "$MESOS_TEMP_PATH_PROTO" .
+    md5sum "mesos-$MESOS_VERSION-protobuf.tar.gz" > "mesos-$MESOS_VERSION-protobuf.tar.gz.md5"
     ;;
   *)
-    echo "Select a target [compile, protoc-go]"
+    echo "Select a target [compile, protoc]"
     exit 1
 esac 
